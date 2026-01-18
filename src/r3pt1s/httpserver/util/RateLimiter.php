@@ -32,6 +32,7 @@ final class RateLimiter {
         $timeout = $timeout ?? $this->timeout;
         if ($timeout < 0) $timeout = self::DEFAULT_TIMEOUT;
         $this->rateLimits[$address->getAddress()] = time() + $timeout;
+        Logger::get()->info("Rate limited %s for %s seconds", $address, $timeout);
         return $this->rateLimits[$address->getAddress()];
     }
 

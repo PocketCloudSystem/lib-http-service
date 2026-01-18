@@ -7,6 +7,7 @@ use r3pt1s\httpserver\io\ResponseBuilder;
 use r3pt1s\httpserver\io\ResponseCache;
 use r3pt1s\httpserver\util\Address;
 use r3pt1s\httpserver\util\HttpConstants;
+use r3pt1s\httpserver\util\Logger;
 use r3pt1s\httpserver\util\StatusCode;
 use r3pt1s\httpserver\util\Utils;
 use Socket;
@@ -127,6 +128,7 @@ final class SocketServer {
         $buffer["buffer"] .= $chunk;
 
         if (strlen($buffer["buffer"]) > HttpConstants::MAX_REQUEST_SIZE) {
+            Logger::get()->warn("§eRequest too large from {$buffer["address"]}, closing...");
             $this->closeClient($clientId);
             return;
         }
@@ -142,6 +144,7 @@ final class SocketServer {
                     $buffer["contentLength"] = (int) $matches[1];
 
                     if ($buffer["contentLength"] > HttpConstants::MAX_REQUEST_SIZE) {
+                        Logger::get()->warn("§eContent-Length too large from {$buffer["address"]}, closing...");
                         $this->closeClient($clientId);
                         return;
                     }

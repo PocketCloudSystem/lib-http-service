@@ -13,6 +13,7 @@ use r3pt1s\httpserver\socket\SocketServer;
 use r3pt1s\httpserver\util\ActionFailureReason;
 use r3pt1s\httpserver\util\Address;
 use r3pt1s\httpserver\util\HttpConstants;
+use r3pt1s\httpserver\util\Logger;
 use r3pt1s\httpserver\util\RateLimiter;
 use r3pt1s\httpserver\util\SingletonTrait;
 use r3pt1s\httpserver\util\StatusCode;
@@ -46,6 +47,17 @@ final class HttpServer {
         };
     }
 
+    public function start(): void {
+        if (!$this->server->create()) {
+            Logger::get()->error("§cFailed to establish http server on address: §e" . $this->address);
+        } else {
+            Logger::get()
+                ->info("Successfully §aestablished §rhttp server on address: §e" . $this->address)
+                ->info("Waiting for incoming requests...");
+            $this->server->listen();
+        }
+    }
+
     public function stop(): void {
         $this->server->close();
     }
@@ -56,8 +68,15 @@ final class HttpServer {
 
     public function registerPath(Path $path): true|ActionFailureReason {
         $pathRoute = "/" . trim($path->getPath(), "/");
-        if ($path->getApiVersion() !== null && !$this->enableVersioning) return ActionFailureReason::PATH_REGISTER_FAILED_VERSIONING_DISABLED;
-        if (!in_array($path->getMethod(), HttpConstants::SUPPORTED_REQUEST_METHODS)) return ActionFailureReason::PATH_REGISTER_FAILED_UNSUPPORTED_REQUEST_METHOD;
+        if ($path->getApiVersion() !== null && !$this->enableVersioning) {
+            Logger::get()->error("§cYou can't register a path with an ApiVersion when 'enableVersioning' is set to false.");
+            return ActionFailureReason::PATH_REGISTER_FAILED_VERSIONING_DISABLED;
+        }
+
+        if (!in_array($path->getMethod(), HttpConstants::SUPPORTED_REQUEST_METHODS)) {
+            Logger::get()->error("§cUnable to register path §8'§e" . $path->getPath() . "§8'§c: §eUnknown request method §c" . $path->getMethod());
+            return ActionFailureReason::PATH_REGISTER_FAILED_UNSUPPORTED_REQUEST_METHOD;
+        }
 
         if ($path instanceof RegularPath) {
             $this->paths[$path->getMethod()][$path->getFullPath()] = $path;
@@ -68,15 +87,26 @@ final class HttpServer {
                 }
 
                 $this->paths[$path->getMethod()][$path->getFullPath()] = $path;
-            } else return ActionFailureReason::PATH_REGISTER_FAILED_API_VERSION_NOT_EXISTENT;
+            } else {
+                Logger::get()->warn("Failed to register path §8'§c" . $path->getPath() . "§8'§r: §eNo api with that version found");
+                return ActionFailureReason::PATH_REGISTER_FAILED_API_VERSION_NOT_EXISTENT;
+            }
         }
 
         return true;
     }
 
     public function registerVersion(ApiVersion $version): true|ActionFailureReason {
-        if (!$this->enableVersioning) return ActionFailureReason::VERSION_REGISTER_FAILED_VERSIONING_DISABLED;
-        if (isset($this->versions[$version->getVersion()])) return ActionFailureReason::VERSION_REGISTER_FAILED_VERSION_EXISTS;
+        if (!$this->enableVersioning) {
+            Logger::get()->error("§cYou can't register an ApiVersion when 'enableVersioning' is set to false.");
+            return ActionFailureReason::VERSION_REGISTER_FAILED_VERSIONING_DISABLED;
+        }
+
+        if (isset($this->versions[$version->getVersion()])) {
+            Logger::get()->warn("Failed to register api with version §8'§e" . $version->getVersion() . "§8'§r: §eAPI version with what version already exists");
+            return ActionFailureReason::VERSION_REGISTER_FAILED_VERSION_EXISTS;
+        }
+
         $this->versions[$version->getVersion()] = $version;
         return true;
     }
