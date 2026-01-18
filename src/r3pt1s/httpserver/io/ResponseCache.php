@@ -4,7 +4,6 @@ namespace r3pt1s\httpserver\io;
 
 use pmmp\thread\ThreadSafeArray;
 use r3pt1s\httpserver\HttpServer;
-use r3pt1s\httpserver\util\Logger;
 
 final class ResponseCache {
 
@@ -51,8 +50,6 @@ final class ResponseCache {
         $fullPath = $path->getFullPath() . (count($queries) == 0 ? "" : "?" . http_build_query($queries));
         $cacheKey = $apiVersion . ":" . $path->getMethod() . ":" . $fullPath;
 
-        Logger::get()->info("Caching response for: " . $fullPath . " (" . $request->getAddress() . ")");
-
         self::$cache->synchronized(function() use ($cacheKey, $response) {
             self::$cache[$cacheKey] = serialize([$response, time()]);
         });
@@ -81,7 +78,6 @@ final class ResponseCache {
                 return null;
             }
 
-            Logger::get()->info("Using cached response for: " . $fullPath . " (" . $request->getAddress() . ")");
             return $response;
         });
     }

@@ -7,7 +7,6 @@ use r3pt1s\httpserver\io\ResponseBuilder;
 use r3pt1s\httpserver\io\ResponseCache;
 use r3pt1s\httpserver\util\Address;
 use r3pt1s\httpserver\util\HttpConstants;
-use r3pt1s\httpserver\util\Logger;
 use r3pt1s\httpserver\util\StatusCode;
 use r3pt1s\httpserver\util\Utils;
 use Socket;
@@ -128,7 +127,6 @@ final class SocketServer {
         $buffer["buffer"] .= $chunk;
 
         if (strlen($buffer["buffer"]) > HttpConstants::MAX_REQUEST_SIZE) {
-            Logger::get()->warn("§eRequest too large from {$buffer["address"]}, closing...");
             $this->closeClient($clientId);
             return;
         }
@@ -144,7 +142,6 @@ final class SocketServer {
                     $buffer["contentLength"] = (int) $matches[1];
 
                     if ($buffer["contentLength"] > HttpConstants::MAX_REQUEST_SIZE) {
-                        Logger::get()->warn("§eContent-Length too large from {$buffer["address"]}, closing...");
                         $this->closeClient($clientId);
                         return;
                     }
@@ -196,11 +193,6 @@ final class SocketServer {
         }
 
         if (($now - $lastStatsLog) >= 30) {
-            Logger::get()->info(
-                "§7[Stats] §eTotal Requests: %s §7| " .
-                "§aTotal Connections: %s §7| " .
-                "§bActive Clients: %s", $this->totalRequests, $this->totalConnections, count($this->clients)
-            );
             $lastStatsLog = $now;
         }
     }
@@ -262,9 +254,5 @@ final class SocketServer {
             socket_close($this->socket);
             $this->socket = null;
         }
-
-        Logger::get()->info("§cAsync server closed");
-        Logger::get()->info("§7Total requests handled: §e$this->totalRequests");
-        Logger::get()->info("§7Total connections: §e$this->totalConnections");
     }
 }
